@@ -6,8 +6,7 @@ namespace TestTask
     public class ReadOnlyStream : IReadOnlyStream
     {
         private FileStream _fileStream;
-        private StreamReader _streamReader;
-        private bool _disposed = false;
+        private bool _disposed;
 
         /// <summary>
         /// Флаг окончания файла.
@@ -23,20 +22,15 @@ namespace TestTask
             VerifyFile(fileFullPath);
 
             _fileStream = new FileStream(fileFullPath, FileMode.Open, FileAccess.Read);
-            _streamReader = new StreamReader(_fileStream, System.Text.Encoding.UTF8);
             IsEof = false;
         }
 
         /// <summary>
-        /// Проверяет путь к файлу и его существование
+        /// Проверяет файл на существование
         /// </summary>
         /// <param name="fileFullPath"></param>
         private void VerifyFile(string fileFullPath)
         {
-            if (string.IsNullOrEmpty(fileFullPath))
-            {
-                throw new ArgumentNullException(nameof(fileFullPath), "Путь к файлу не может быть null или пустым.");
-            }
             if (!File.Exists(fileFullPath))
             {
                 throw new FileNotFoundException($"Файл не найден: {fileFullPath}");
@@ -53,11 +47,10 @@ namespace TestTask
         {
             IfDisposedThrow();
 
-            int charCode = _streamReader.Read();
+            int charCode = _fileStream.ReadByte();
             if (charCode == -1)
             {
                 IsEof = true;
-                throw new EndOfStreamException("Достигнут конец файла.");
             }
 
             return (char)charCode;
@@ -79,14 +72,12 @@ namespace TestTask
             try
             {
                 _fileStream.Position = 0;
-                _streamReader?.Dispose();
-                _streamReader = new StreamReader(_fileStream, System.Text.Encoding.UTF8);
                 IsEof = false;
             }
             catch (Exception ex)
             {
                 IsEof = true;
-                throw new InvalidOperationException("Ошибка при сбросе позиции.", ex);
+                throw new InvalidOperationException("Ошибка при сбросе позиции стрима.", ex);
             }
         }
 
@@ -98,7 +89,9 @@ namespace TestTask
             }
         }
 
-
+        /// <summary>
+        /// Освобождает ресурсы, используемые потоком.
+        /// </summary>
         public void Dispose()
         {
             if (_disposed)
@@ -106,11 +99,12 @@ namespace TestTask
 
             try
             {
-                _streamReader?.Dispose();
                 _fileStream?.Dispose();
             }
-            catch { }
-
+            catch
+            {
+                // Игнорируем ошибки при закрытии
+            }
             _disposed = true;
             IsEof = true;
         }

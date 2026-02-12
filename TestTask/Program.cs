@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace TestTask
@@ -39,13 +40,15 @@ namespace TestTask
                     PrintStatistic(doubleLetterStats);
                 }
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
             {
-                Console.WriteLine($"Ошибка: {ex.Message}");
+                Console.WriteLine(ex.Message);
             }
-
-            Console.WriteLine("\nНажмите любую клавишу для выхода...");
-            Console.ReadKey();
+            finally
+            {
+                Console.WriteLine("\nНажмите любую клавишу для выхода...");
+                Console.ReadKey();
+            }
         }
 
         /// <summary>
@@ -79,6 +82,7 @@ namespace TestTask
                     {
                         LetterStats singleStat = letterStats[letter];
                         IncStatistic(ref singleStat);
+                        letterStats[letter] = singleStat;
                     }
                     else
                     {
@@ -115,12 +119,14 @@ namespace TestTask
                         {
                             LetterStats singleStat = letterStats[pair];
                             IncStatistic(ref singleStat);
+                            letterStats[pair] = singleStat;
                         }
                         else
                         {
                             letterStats[pair] = new LetterStats { Letter = pair, Count = 1 };
                         }
                     }
+                    prevChar = c;
                 }
                 else
                 {
@@ -134,8 +140,7 @@ namespace TestTask
         private static readonly HashSet<char> Vowels = new HashSet<char>
         {
             'А', 'Е', 'Ё', 'И', 'О', 'У', 'Ы', 'Э', 'Ю', 'Я',
-            'A', 'E', 'I', 'O', 'U',
-            'а', 'е', 'ё', 'и', 'о', 'у', 'ы', 'э', 'ю', 'я'
+            'A', 'E', 'I', 'O', 'U'
         };
 
         /// <summary>
@@ -148,7 +153,7 @@ namespace TestTask
             if (string.IsNullOrEmpty(letter))
                 return false;
 
-            return letter.All(c => Vowels.Contains(c));
+            return letter.All(c => Vowels.Contains(char.ToUpper(c)));
         }
 
         /// <summary>
