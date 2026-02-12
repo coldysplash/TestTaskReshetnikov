@@ -5,29 +5,42 @@ namespace TestTask
 {
     public class ReadOnlyStream : IReadOnlyStream
     {
-        private Stream _localStream;
+        private FileStream _fileStream;
+        private StreamReader _streamReader;
+        private bool _disposed = false;
+
+        /// <summary>
+        /// Флаг окончания файла.
+        /// </summary>
+        public bool IsEof { get; private set; }
 
         /// <summary>
         /// Конструктор класса. 
-        /// Т.к. происходит прямая работа с файлом, необходимо 
-        /// обеспечить ГАРАНТИРОВАННОЕ закрытие файла после окончания работы с таковым!
         /// </summary>
         /// <param name="fileFullPath">Полный путь до файла для чтения</param>
         public ReadOnlyStream(string fileFullPath)
         {
-            IsEof = true;
+            VerifyFile(fileFullPath);
 
-            // TODO : Заменить на создание реального стрима для чтения файла!
-            _localStream = null;
+            _fileStream = new FileStream(fileFullPath, FileMode.Open, FileAccess.Read);
+            _streamReader = new StreamReader(_fileStream, System.Text.Encoding.UTF8);
+            IsEof = false;
         }
-                
+
         /// <summary>
-        /// Флаг окончания файла.
+        /// Проверяет путь к файлу и его существование
         /// </summary>
-        public bool IsEof
+        /// <param name="fileFullPath"></param>
+        private void VerifyFile(string fileFullPath)
         {
-            get; // TODO : Заполнять данный флаг при достижении конца файла/стрима при чтении
-            private set;
+            if (string.IsNullOrEmpty(fileFullPath))
+            {
+                throw new ArgumentNullException(nameof(fileFullPath), "Путь к файлу не может быть null или пустым.");
+            }
+            if (!File.Exists(fileFullPath))
+            {
+                throw new FileNotFoundException($"Файл не найден: {fileFullPath}");
+            }
         }
 
         /// <summary>
@@ -38,8 +51,16 @@ namespace TestTask
         /// <returns>Считанный символ.</returns>
         public char ReadNextChar()
         {
-            // TODO : Необходимо считать очередной символ из _localStream
-            throw new NotImplementedException();
+            IfDisposedThrow();
+
+            int charCode = _streamReader.Read();
+            if (charCode == -1)
+            {
+                IsEof = true;
+                throw new EndOfStreamException("Достигнут конец файла.");
+            }
+
+            return (char)charCode;
         }
 
         /// <summary>
@@ -47,14 +68,51 @@ namespace TestTask
         /// </summary>
         public void ResetPositionToStart()
         {
-            if (_localStream == null)
+            IfDisposedThrow();
+
+            if (_fileStream == null)
             {
                 IsEof = true;
                 return;
             }
 
-            _localStream.Position = 0;
-            IsEof = false;
+            try
+            {
+                _fileStream.Position = 0;
+                _streamReader?.Dispose();
+                _streamReader = new StreamReader(_fileStream, System.Text.Encoding.UTF8);
+                IsEof = false;
+            }
+            catch (Exception ex)
+            {
+                IsEof = true;
+                throw new InvalidOperationException("Ошибка при сбросе позиции.", ex);
+            }
+        }
+
+        private void IfDisposedThrow()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
+        }
+
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            try
+            {
+                _streamReader?.Dispose();
+                _fileStream?.Dispose();
+            }
+            catch { }
+
+            _disposed = true;
+            IsEof = true;
         }
     }
 }
