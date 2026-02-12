@@ -40,9 +40,9 @@ namespace TestTask
                     PrintStatistic(doubleLetterStats);
                 }
             }
-            catch (FileNotFoundException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"Ошибка: {ex.Message}");
             }
             finally
             {
@@ -204,7 +204,5 @@ namespace TestTask
         {
             letterStats.Count++;
         }
-
-
     }
 }
